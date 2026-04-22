@@ -178,6 +178,7 @@ td a:hover{text-decoration:underline;}
   <div style="display:flex;align-items:center;gap:14px;">
     <div class="nav-tabs">
       <button class="nav-tab active" onclick="showPage('overview')">Overview</button>
+      <button class="nav-tab" onclick="showPage('trends')">Trends</button>
       <button class="nav-tab" onclick="showPage('compare')">Compare</button>
       <button class="nav-tab" onclick="showPage('leaderboard')">Leaderboard</button>
     </div>
@@ -194,6 +195,7 @@ td a:hover{text-decoration:underline;}
 </div>
 
 <div id="page-compare"     class="page"></div>
+<div id="page-trends"      class="page"></div>
 <div id="page-leaderboard" class="page"></div>
 <div id="page-detail"      class="page"></div>
 
@@ -219,6 +221,7 @@ const COMP_META = {
 let DATA         = [];   // latest stats row per competitor
 let HISTORY      = {};   // slug -> array of stats rows (all time)
 let SNAPSHOTS    = {};   // slug -> latest listing_snapshots rows
+let DELTA_HIST   = {};   // slug -> array of {date, new_since_yesterday} for sale type
 let charts       = {};
 let detailSlug   = null;
 let detailTab    = 'sale';
@@ -272,6 +275,21 @@ async function loadData() {
       }
     }
 
+    // Delta history for Trends chart — all sale snapshots ordered oldest first
+    const deltaRows = await sbFetch('listing_snapshots',
+      'listing_type=eq.sale&order=scraped_at.asc&limit=1000&select=agency_slug,scraped_at_melb,new_since_yesterday'
+    );
+    DELTA_HIST = {};
+    for (const row of deltaRows) {
+      if (!DELTA_HIST[row.agency_slug]) DELTA_HIST[row.agency_slug] = [];
+      if (row.new_since_yesterday !== null) {
+        DELTA_HIST[row.agency_slug].push({
+          date:  row.scraped_at_melb ? row.scraped_at_melb.split(' ')[0] : '',
+          delta: row.new_since_yesterday
+        });
+      }
+    }
+
     // Update last run label
     const latest = allStats[0];
     if (latest) {
@@ -313,6 +331,7 @@ function showPage(page, slug) {
   } else {
     document.getElementById(`page-${page}`).classList.add('active');
     if (page === 'overview')    renderOverview();
+    if (page === 'trends')      renderTrends();
     if (page === 'compare')     renderCompare();
     if (page === 'leaderboard') renderLeaderboard();
   }
@@ -360,6 +379,125 @@ function renderOverview() {
     div.onclick = () => showPage('detail', row.agency_slug);
     grid.appendChild(div);
   });
+}
+
+// ─── TRENDS ────────────────────────────────────────────────────────────────
+function renderTrends() {
+  const el = document.getElementById('page-trends');
+  const dateSet = new Set();
+  for (const slug in DELTA_HIST) {
+    DELTA_HIST[slug].forEach(r => { if (r.date) dateSet.add(r.date); });
+  }
+  const allDates = [...dateSet].sort();
+
+  if (allDates.length === 0) {
+    el.innerHTML = `<div style="padding:60px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:12px;">
+      No delta data yet — needs at least 2 daily scrapes.<br><br>
+      Data will appear here automatically after the 5am run tomorrow.
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="padding:24px 28px;">
+      <div class="section-label">New For Sale listings per day — all competitors</div>
+      <div class="chart-card" style="margin-bottom:20px;margin-top:14px;">
+        <div class="chart-title">Daily new For Sale listings</div>
+        <div class="chart-note">Each line = one platform · ${allDates.length} days of data · NAP (★) is our platform</div>
+        <div id="trends-legend" class="legend" style="margin-bottom:14px;"></div>
+        <div style="position:relative;width:100%;height:380px;">
+          <canvas id="trendsChart" role="img" aria-label="Line chart of daily new For Sale listings per competitor over time">Daily new listing trends.</canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">7-day rolling average</div>
+        <div class="chart-note">Smoothed trend — reduces day-to-day noise</div>
+        <div id="rolling-legend" class="legend" style="margin-bottom:14px;"></div>
+        <div style="position:relative;width:100%;height:300px;">
+          <canvas id="rollingChart" role="img" aria-label="Line chart of 7-day rolling average new listings per competitor">Rolling average trends.</canvas>
+        </div>
+      </div>
+    </div>`;
+
+  const slugOrder = Object.keys(COMP_META);
+
+  const datasets = slugOrder.map(slug => {
+    const meta = COMP_META[slug];
+    const dataMap = {};
+    (DELTA_HIST[slug] || []).forEach(r => { dataMap[r.date] = r.delta; });
+    return {
+      label: meta.shortName,
+      data: allDates.map(d => dataMap[d] !== undefined ? dataMap[d] : null),
+      borderColor: meta.color,
+      borderWidth: meta.isUs ? 3 : 1.5,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      tension: 0.3,
+      fill: false,
+      spanGaps: true,
+    };
+  });
+
+  function rollingAvg(data, w) {
+    return data.map((_, i) => {
+      const slice = data.slice(Math.max(0,i-w+1), i+1).filter(v=>v!==null);
+      if (!slice.length) return null;
+      return parseFloat((slice.reduce((a,b)=>a+b,0)/slice.length).toFixed(1));
+    });
+  }
+
+  const rollingDatasets = slugOrder.map((slug, di) => {
+    const meta = COMP_META[slug];
+    return {
+      label: meta.shortName,
+      data: rollingAvg(datasets[di].data, 7),
+      borderColor: meta.color,
+      borderWidth: meta.isUs ? 3 : 1.5,
+      pointRadius: 0,
+      tension: 0.4,
+      fill: false,
+      spanGaps: true,
+    };
+  });
+
+  const displayDates = allDates.map(d => {
+    const iso = d.split('-');
+    if (iso.length === 3) return `${iso[2]}/${iso[1]}`;
+    const parts = d.split('/');
+    if (parts.length >= 2) return `${parts[0]}/${parts[1]}`;
+    return d;
+  });
+
+  const cOpts = (yLabel) => ({
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode:'index', intersect:false },
+    plugins: {
+      legend: { display:false },
+      tooltip: {
+        backgroundColor:'#1a2030', borderColor:'rgba(255,255,255,0.1)', borderWidth:1,
+        titleColor:'#dde1ef', bodyColor:'#8b93ab', padding:10,
+      }
+    },
+    scales: {
+      x: { ticks:{color:'#5a6278',font:{size:10},maxRotation:45,autoSkip:true,maxTicksLimit:14}, grid:{color:'rgba(255,255,255,0.04)'} },
+      y: { title:{display:true,text:yLabel,color:'#5a6278',font:{size:10}}, ticks:{color:'#5a6278',font:{size:10},stepSize:1}, grid:{color:'rgba(255,255,255,0.04)'}, min:0 }
+    }
+  });
+
+  setTimeout(() => {
+    const ctx1 = document.getElementById('trendsChart');
+    const ctx2 = document.getElementById('rollingChart');
+    if (!ctx1 || !ctx2) return;
+    charts.trends  = new Chart(ctx1, {type:'line', data:{labels:displayDates, datasets},        options:cOpts('New listings / day')});
+    charts.rolling = new Chart(ctx2, {type:'line', data:{labels:displayDates, datasets:rollingDatasets}, options:cOpts('7-day avg')});
+    ['trends-legend','rolling-legend'].forEach(id => {
+      const leg = document.getElementById(id); if (!leg) return;
+      leg.innerHTML = slugOrder.map(slug => {
+        const m = COMP_META[slug];
+        return `<span class="legend-item"><span class="legend-dot" style="background:${m.color};${m.isUs?'width:12px;height:12px;':''}"></span>${m.shortName}${m.isUs?' ★':''}</span>`;
+      }).join('');
+    });
+  }, 50);
 }
 
 // ─── COMPARE ───────────────────────────────────────────────────────────────
