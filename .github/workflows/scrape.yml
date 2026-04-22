@@ -1,0 +1,40 @@
+name: Daily Competitor Scrape
+
+on:
+  schedule:
+    # 5am Melbourne time = 6pm UTC (AEST, UTC+11 in winter)
+    # Adjust to 7pm UTC (19:00) in summer when AEDT is UTC+11
+    # This runs at 19:00 UTC which is 5am AEDT (UTC+10 summer = 3am? no)
+    # AEST = UTC+10, so 5am AEST = 19:00 UTC previous day
+    # AEDT = UTC+11, so 5am AEDT = 18:00 UTC previous day
+    # We use 19:00 UTC which covers 5am AEST (non-daylight saving)
+    - cron: '0 19 * * *'
+
+  # Also allows you to trigger it manually from the GitHub website
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          cd scraper
+          python scraper.py
+
+      - name: Report result
+        if: failure()
+        run: echo "Scrape failed — check logs above"
