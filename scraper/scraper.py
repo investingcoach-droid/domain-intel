@@ -298,46 +298,79 @@ def parse_agency_data(next_data: dict, slug: str) -> dict:
 def calculate_delta(
     agency_slug:       str,
     agency_id:         int,
-    listing_type:      str,
     current_page1_ids: list[str],
     sb_url:            str,
     sb_key:            str,
     verbose:           bool = True,
-) -> int | None:
+) -> tuple[int | None, str | None]:
     """
-    Return number of new listings since the previous run's anchor.
+    Return (delta, flag) using dual-anchor strategy.
 
-    1. Look up previous anchor from Supabase.
-    2. If found in today's page 1 -- return position.
-    3. If not in page 1 -- paginate via GraphQL until found.
-    4. If not found within MAX_PAGINATION_PAGES -- return None (overflow).
+    - Queries yesterday's anchor_id (A) and anchor_id_2 (B) from Supabase
+    - Searches pages 1-MAX_PAGINATION_PAGES for A first, then B
+    - Position of found anchor = number of new listings
+    - Returns (delta, None) on success
+    - Returns (None, 'overflow') if neither anchor found
+    - Returns (None, None) on first run
     """
-    # Get the most recent anchor for this agency + listing type
     rows = supabase_query(
         "listing_snapshots",
-        f"agency_slug=eq.{agency_slug}&listing_type=eq.{listing_type}"
-        f"&order=id.desc&limit=1&select=anchor_id",
+        f"agency_slug=eq.{agency_slug}&listing_type=eq.sale"
+        f"&order=id.desc&limit=1&select=anchor_id,anchor_id_2",
         sb_url, sb_key,
     )
     if not rows or not rows[0].get("anchor_id"):
-        return None   # first run
+        return None, None   # first run
 
-    prev_anchor = rows[0]["anchor_id"]
+    anchor1 = rows[0].get("anchor_id")
+    anchor2 = rows[0].get("anchor_id_2")
 
-    # Check page 1 first (free)
-    if prev_anchor in current_page1_ids:
-        return current_page1_ids.index(prev_anchor)
+    def search_anchor(anchor: str) -> int | None:
+        """Search for anchor across pages 1-MAX_PAGINATION_PAGES. Returns position or None."""
+        if not anchor:
+            return None
+        # Check page 1 (already fetched)
+        if anchor in current_page1_ids:
+            return current_page1_ids.index(anchor)
+        # Paginate via GraphQL
+        accumulated = list(current_page1_ids)
+        for page in range(2, MAX_PAGINATION_PAGES + 2):
+            try:
+                gql      = fetch_graphql_page(agency_id, page)
+                page_ids = extract_ids_from_graphql(gql, "sale")
+            except RuntimeError as e:
+                if verbose:
+                    print(f"      GraphQL error page {page}: {e}")
+                return None
+            if not page_ids:
+                return None
+            if anchor in page_ids:
+                pos = page_ids.index(anchor)
+                total = len(accumulated) + pos
+                if verbose:
+                    print(f"      Found anchor {anchor} on page {page} pos {pos} → delta={total}")
+                return total
+            accumulated.extend(page_ids)
+        return None
 
-    # Paginate via GraphQL
+    # Try anchor1 first
     if verbose:
-        print(f"      anchor '{prev_anchor}' not on page 1 -- paginating via GraphQL ...")
+        print(f"      Searching for anchor1={anchor1}")
+    delta = search_anchor(anchor1)
+    if delta is not None:
+        return delta, None
 
-    accumulated = list(current_page1_ids)
+    # Try anchor2
+    if anchor2:
+        if verbose:
+            print(f"      anchor1 not found, trying anchor2={anchor2}")
+        delta = search_anchor(anchor2)
+        if delta is not None:
+            return delta, None
 
-    for page in range(2, MAX_PAGINATION_PAGES + 2):
-        try:
-            gql = fetch_graphql_page(agency_id, page)
-        except RuntimeError as e:
+    if verbose:
+        print(f"      Neither anchor found in {MAX_PAGINATION_PAGES} pages → overflow")
+    return None, "overflow"
             if verbose:
                 print(f"      GraphQL error on page {page}: {e}")
             return None
@@ -360,12 +393,6 @@ def calculate_delta(
         if verbose:
             print(f"      Page {page}: not found yet ({len(accumulated)} IDs checked)")
 
-    if verbose:
-        print(
-            f"      Anchor not found in {MAX_PAGINATION_PAGES} extra pages "
-            f"({len(accumulated)} listings checked). Storing None."
-        )
-    return None
 
 
 # ---------------------------------------------------------------------------
@@ -405,26 +432,25 @@ def scrape_agency(slug: str, sb_url: str, sb_key: str, verbose: bool = True) -> 
             f"|  For Rent: {summary['for_rent']:>4}  |  Leased: {summary['leased']:>4}"
         )
 
-    # Write listing snapshot rows
-    for ltype, ldata in data["listings"].items():
-        delta = calculate_delta(
-            slug, agency_id, ltype, ldata["page1_ids"],
-            sb_url, sb_key, verbose=verbose,
-        )
-        supabase_insert("listing_snapshots", [{
-            "scraped_at":          now_utc,
-            "scraped_at_melb":     now_melb,
-            "agency_slug":         slug,
-            "listing_type":        ltype,
-            "total_count":         ldata["total"],
-            "page1_ids":           json.dumps(ldata["page1_ids"]),
-            "anchor_id":           ldata["anchor_id"],
-            "new_since_yesterday": delta,
-        }], sb_url, sb_key)
-
-        if verbose:
-            d_str = f"+{delta} new" if delta is not None else "-- (first run or overflow)"
-            print(f"    [{ltype:6s}] total={ldata['total']:5}  anchor={ldata['anchor_id']}  delta={d_str}")
+    # Write listing snapshot — For Sale only, dual anchor strategy
+    ldata  = data["listings"].get("sale", {})
+    ids    = ldata.get("page1_ids", [])
+    delta, flag = calculate_delta(slug, agency_id, ids, sb_url, sb_key, verbose=verbose)
+    supabase_insert("listing_snapshots", [{
+        "scraped_at":          now_utc,
+        "scraped_at_melb":     now_melb,
+        "agency_slug":         slug,
+        "listing_type":        "sale",
+        "total_count":         ldata.get("total", 0),
+        "page1_ids":           json.dumps(ids),
+        "anchor_id":           ids[0] if ids else None,
+        "anchor_id_2":         ids[1] if len(ids) > 1 else None,
+        "new_since_yesterday": delta,
+        "delta_flag":          flag,
+    }], sb_url, sb_key)
+    if verbose:
+        d_str = f"+{delta}" if delta is not None else f"null ({flag or 'first run'})"
+        print(f"    [sale  ] total={ldata.get('total',0):5}  anchor={ids[0] if ids else None}  delta={d_str}")
 
 
 # ---------------------------------------------------------------------------
