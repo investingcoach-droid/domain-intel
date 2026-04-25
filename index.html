@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAP — Domain & Business Intel</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23ef4444'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-size='18' font-weight='800' font-family='sans-serif' fill='white'>A</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0c0e14;
+  --bg2:     #131720;
+  --bg3:     #1a2030;
+  --border:  rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.12);
+  --text:    #dde1ef;
+  --muted:   #5a6278;
+  --dim:     #8b93ab;
+  --font:    'Syne', sans-serif;
+  --mono:    'DM Mono', monospace;
+  --c-pn:   #4f8eff;
+  --c-bmp:  #f97316;
+  --c-fsbo: #a855f7;
+  --c-sbho: #10b981;
+  --c-nap:  #ef4444;
+  --c-rb:   #06b6d4;
+  --c-mta:  #eab308;
+  --sale-c:   #4f8eff;
+  --sold-c:   #00d4a0;
+  --rent-c:   #c084fc;
+  --leased-c: #ffd166;
+  --biz-c:    #00d4a0;
+}
+/* ── SECTION SWITCHER ── */
+.section-switcher{display:flex;gap:4px;padding:4px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);margin-right:8px;}
+.section-btn{font-size:11px;font-weight:700;padding:5px 14px;border-radius:5px;cursor:pointer;border:none;background:none;color:var(--muted);font-family:var(--font);letter-spacing:.04em;transition:all .15s;}
+.section-btn:hover{color:var(--text);}
+.section-btn.active{background:var(--bg2);color:var(--text);border:1px solid var(--border2);}
+.section-btn.active.rs{color:#4f8eff;}
+.section-btn.active.bs{color:#00d4a0;}
+/* ── BIZ CARDS ── */
+.biz-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 20px;transition:border-color .15s,background .15s;position:relative;overflow:hidden;}
+.biz-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;}
+.biz-card:hover{border-color:var(--border2);background:var(--bg3);}
+.biz-card.is-us{border-color:rgba(239,68,68,.2);}
+.biz-count{font-size:32px;font-weight:800;letter-spacing:-.02em;line-height:1;color:var(--biz-c);}
+.biz-count-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:3px;}
+.biz-platform{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:6px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;min-height:100vh;}
+
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:52px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+.topbar-left{display:flex;align-items:center;gap:10px;}
+.logo{width:26px;height:26px;border-radius:5px;background:var(--c-nap);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;}
+.topbar-title{font-size:14px;font-weight:700;}
+.topbar-sub{font-size:10px;color:var(--muted);font-family:var(--mono);margin-left:10px;}
+.nav-tabs{display:flex;gap:2px;}
+.nav-tab{font-size:12px;font-weight:600;padding:5px 14px;border-radius:5px;cursor:pointer;border:none;background:none;color:var(--muted);font-family:var(--font);letter-spacing:.02em;transition:all .15s;}
+.nav-tab:hover{color:var(--text);background:var(--bg3);}
+.nav-tab.active{color:var(--text);background:var(--bg3);border:1px solid var(--border2);}
+.last-run{font-size:10px;color:var(--muted);font-family:var(--mono);}
+
+/* ── LOADING ── */
+.loading{display:flex;align-items:center;justify-content:center;height:60vh;flex-direction:column;gap:12px;}
+.spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--c-nap);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-text{font-size:12px;color:var(--muted);font-family:var(--mono);}
+.error-box{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:16px 20px;margin:32px;font-size:12px;font-family:var(--mono);color:#fca5a5;line-height:1.8;}
+
+/* ── PAGES ── */
+.page{display:none;padding:24px 28px;}
+.page.active{display:block;}
+
+/* ── OVERVIEW ── */
+.overview-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px;}
+.comp-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 20px;cursor:pointer;transition:border-color .15s,background .15s;position:relative;overflow:hidden;}
+.comp-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;}
+.comp-card:hover{border-color:var(--border2);background:var(--bg3);}
+.comp-card.is-us{border-color:rgba(239,68,68,.2);}
+.card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
+.card-name{font-size:14px;font-weight:700;}
+.card-slug{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:2px;}
+.us-badge{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(239,68,68,.15);color:#ef4444;padding:3px 8px;border-radius:4px;white-space:nowrap;}
+.card-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.cs{text-align:center;}
+.cs-val{font-size:17px;font-weight:700;line-height:1;}
+.cs-lbl{font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:3px;}
+.cs.sale .cs-val{color:var(--sale-c);}
+.cs.sold .cs-val{color:var(--sold-c);}
+.cs.rent .cs-val{color:var(--rent-c);}
+.cs.leased .cs-val{color:var(--leased-c);}
+.delta-pill{font-size:9px;font-family:var(--mono);padding:2px 7px;border-radius:10px;margin-top:8px;display:inline-block;}
+.delta-pill.has-data{background:rgba(0,212,160,.12);color:#00d4a0;}
+.delta-pill.no-data{background:rgba(90,98,120,.12);color:var(--muted);}
+.delta-pill.overflow{background:rgba(234,179,8,.12);color:#eab308;}
+
+/* ── COMPARE ── */
+.section-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.compare-section{margin-bottom:28px;}
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 20px;}
+.chart-title{font-size:12px;font-weight:600;color:var(--dim);margin-bottom:2px;}
+.chart-note{font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:14px;}
+.chart-wrap{position:relative;width:100%;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--dim);}
+.legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;display:inline-block;}
+
+/* ── LEADERBOARD ── */
+.lb-table{width:100%;border-collapse:collapse;}
+.lb-table th{padding:8px 14px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
+.lb-table td{padding:10px 14px;font-size:13px;border-bottom:1px solid var(--border);}
+.lb-table tr:last-child td{border-bottom:none;}
+.lb-table tbody tr:hover{background:var(--bg3);}
+.rank-num{font-family:var(--mono);font-size:11px;color:var(--muted);}
+.rank-1 .rank-num{color:#ffd166;font-weight:700;}
+.rank-2 .rank-num{color:#b0b7c3;font-weight:700;}
+.rank-3 .rank-num{color:#cd7c3a;font-weight:700;}
+.comp-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:7px;}
+.name-cell{display:flex;align-items:center;}
+.us-tag{font-size:9px;color:var(--c-nap);font-family:var(--mono);margin-left:6px;opacity:.8;}
+.bar-bg{background:var(--bg3);border-radius:3px;height:6px;overflow:hidden;margin-top:4px;}
+.bar-fill{height:100%;border-radius:3px;}
+.num-cell{font-family:var(--mono);font-size:12px;text-align:right;}
+
+/* ── DETAIL ── */
+.back-btn{font-size:12px;color:var(--muted);cursor:pointer;background:none;border:none;font-family:var(--font);padding:5px 0;margin-bottom:16px;display:block;}
+.back-btn:hover{color:var(--text);}
+.detail-name{font-size:22px;font-weight:800;letter-spacing:-.02em;}
+.detail-slug{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px;margin-bottom:20px;}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.sale::before{background:var(--sale-c);}
+.stat-card.sold::before{background:var(--sold-c);}
+.stat-card.rent::before{background:var(--rent-c);}
+.stat-card.leased::before{background:var(--leased-c);}
+.stat-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.stat-val{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1;}
+.stat-sub{font-size:9px;color:var(--muted);font-family:var(--mono);margin-top:4px;}
+.stat-card.sale .stat-val{color:var(--sale-c);}
+.stat-card.sold .stat-val{color:var(--sold-c);}
+.stat-card.rent .stat-val{color:var(--rent-c);}
+.stat-card.leased .stat-val{color:var(--leased-c);}
+.delta-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.delta-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;}
+.delta-type{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;}
+.delta-num{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1;}
+.delta-na{font-size:16px;color:var(--muted);padding-top:5px;}
+.delta-sub{font-size:9px;color:var(--muted);font-family:var(--mono);margin-top:3px;}
+
+/* ── HISTORY TABLE ── */
+.table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;}
+.table-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);}
+.tab-row{display:flex;gap:4px;}
+.ltab{font-size:11px;font-weight:600;padding:5px 12px;border-radius:5px;cursor:pointer;border:none;background:none;color:var(--muted);font-family:var(--font);transition:all .12s;}
+.ltab:hover{color:var(--text);background:var(--bg3);}
+.ltab.active{background:var(--bg3);color:var(--text);border:1px solid var(--border2);}
+.ltab.sale.active{color:var(--sale-c);}
+.ltab.sold.active{color:var(--sold-c);}
+.ltab.rent.active{color:var(--rent-c);}
+.ltab.leased.active{color:var(--leased-c);}
+.total-tag{font-size:10px;color:var(--muted);font-family:var(--mono);}
+table{width:100%;border-collapse:collapse;}
+thead tr{border-bottom:1px solid var(--border);}
+th{padding:8px 16px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:var(--bg3);}
+td{padding:9px 16px;font-size:12px;color:var(--dim);}
+td.mono{font-family:var(--mono);font-size:10px;color:var(--muted);}
+td.price{font-weight:600;color:var(--text);}
+td a{color:var(--c-pn);text-decoration:none;font-family:var(--mono);font-size:10px;}
+td a:hover{text-decoration:underline;}
+.pill{display:inline-block;font-size:10px;font-family:var(--mono);padding:2px 6px;border-radius:4px;margin-right:3px;}
+.bed-pill{background:rgba(79,142,255,.1);color:#7ab3ff;}
+.bath-pill{background:rgba(192,132,252,.1);color:#d8b4fe;}
+
+/* ── HISTORY CHART ── */
+.history-chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:20px;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.fade{animation:fadeUp .2s ease forwards;}
+
+/* ── MOBILE ── */
+@media(max-width:640px){
+  .topbar{padding:0 14px;height:48px;flex-wrap:wrap;height:auto;padding-top:10px;padding-bottom:10px;gap:8px;}
+  .topbar-sub{display:none;}
+  .nav-tabs{gap:2px;flex-wrap:wrap;}
+  .nav-tab{font-size:11px;padding:4px 10px;}
+  .page{padding:14px;}
+  .overview-grid{grid-template-columns:1fr;}
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
+  .chart-card{padding:14px 12px;}
+  .section-label{font-size:9px;}
+  .compare-section{padding:0;}
+  .compare-grid{grid-template-columns:1fr;}
+  .lb-table th,.lb-table td{font-size:11px;padding:8px 10px;}
+  .detail-name{font-size:18px;}
+  .delta-row{grid-template-columns:1fr;}
+  .last-run{display:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">A</div>
+    <span class="topbar-title">NAP</span>
+    <span class="topbar-sub" id="topbarSub">Domain Intel · domain.com.au</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div class="section-switcher">
+      <button class="section-btn rs active" onclick="switchSection('rs')">Residential</button>
+      <button class="section-btn bs" onclick="switchSection('bs')">Business</button>
+    </div>
+    <div class="nav-tabs" id="rsNavTabs">
+      <button class="nav-tab active" onclick="showPage('overview')">Overview</button>
+      <button class="nav-tab" onclick="showPage('trends')">Trends</button>
+      <button class="nav-tab" onclick="showPage('compare')">Compare</button>
+      <button class="nav-tab" onclick="showPage('leaderboard')">Leaderboard</button>
+    </div>
+    <div class="nav-tabs" id="bsNavTabs" style="display:none;">
+      <button class="nav-tab active" onclick="showBsPage('bs-overview')">Overview</button>
+      <button class="nav-tab" onclick="showBsPage('bs-trends')">Trends</button>
+      <button class="nav-tab" onclick="showBsPage('bs-compare')">Compare</button>
+      <button class="nav-tab" onclick="showBsPage('bs-leaderboard')">Leaderboard</button>
+    </div>
+    <span class="last-run" id="lastRun">Loading...</span>
+  </div>
+</div>
+
+<div id="page-overview" class="page active">
+  <div id="loadingState" class="loading">
+    <div class="spinner"></div>
+    <div class="load-text">Fetching latest data from Supabase...</div>
+  </div>
+  <div id="overviewGrid" class="overview-grid" style="display:none;"></div>
+</div>
+
+<div id="page-compare"     class="page"></div>
+<div id="page-trends"      class="page"></div>
+<div id="page-leaderboard" class="page"></div>
+<div id="page-detail"      class="page"></div>
+
+<!-- Business Intel Pages -->
+<div id="page-bs-overview"    class="page"></div>
+<div id="page-bs-trends"      class="page"></div>
+<div id="page-bs-compare"     class="page"></div>
+<div id="page-bs-leaderboard" class="page"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ─── CONFIG ────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://mdrsxaounqbdtfwdowyn.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kcnN4YW91bnFiZHRmd2Rvd3luIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4Mzg4NjIsImV4cCI6MjA5MjQxNDg2Mn0.iK0JQMkiyPlqdpG812ydh9qa1XWArn1Ecn_1ltefKqs';
+
+// ─── CRE COMPETITOR METADATA ───────────────────────────────────────────────
+const CRE_META = {
+  'no-agent-property--20869':              { name:'No Agent Business',             shortName:'NAB',   color:'#ef4444', isUs:true  },
+  'direct-business-pty-ltd-34935':         { name:'Direct Business',               shortName:'DB',    color:'#4f8eff', isUs:false },
+  'for-sale-by-owner-20095':               { name:'For Sale By Owner',             shortName:'FSBO',  color:'#a855f7', isUs:false },
+  'bonza-business-franchise-sales-30533':  { name:'Bonza Business & Franchise',   shortName:'Bonza', color:'#f97316', isUs:false },
+  'network-infinity-31749':                { name:'Network Infinity',              shortName:'NI',    color:'#10b981', isUs:false },
+};
+
+// ─── BUSINESS INTEL STATE ──────────────────────────────────────────────────
+let BS_DATA       = [];   // latest cre_agency_stats per competitor
+let BS_SNAPSHOTS  = {};   // slug -> latest cre_listing_snapshots row
+let BS_DELTA_HIST = {};   // slug -> [{date, delta}]
+let bsLoaded      = false;
+let currentSection = 'rs';
+
+// ─── COMPETITOR METADATA (colours, display names etc) ─────────────────────
+const COMP_META = {
+  'propertynow-10282':         { name:'Property Now',     shortName:'PN',   color:'#4f8eff', isUs:false },
+  'forsalebyowner-20095':      { name:'For Sale By Owner',shortName:'FSBO', color:'#a855f7', isUs:false },
+  'buymyplace-17238':          { name:'buymyplace',       shortName:'BMP',  color:'#f97316', isUs:false },
+  'salebyhomeownercomau-31710':{ name:'SaleByHomeOwner',  shortName:'SBHO', color:'#10b981', isUs:false },
+  'noagentproperty-20869':     { name:'No Agent Property',shortName:'NAP',  color:'#ef4444', isUs:true  },
+  'rentbetter-27499':          { name:'RentBetter',       shortName:'RB',   color:'#06b6d4', isUs:false },
+  'minustheagent-26625':       { name:'Minus The Agent',  shortName:'MTA',  color:'#eab308', isUs:false },
+};
+
+// ─── STATE ─────────────────────────────────────────────────────────────────
+let DATA         = [];   // latest stats row per competitor
+let HISTORY      = {};   // slug -> array of stats rows (all time)
+let SNAPSHOTS    = {};   // slug -> latest listing_snapshots rows
+let DELTA_HIST   = {};   // slug -> array of {date, new_since_yesterday} for sale type
+let charts       = {};
+let detailSlug   = null;
+let detailTab    = 'sale';
+
+// ─── SUPABASE FETCH ────────────────────────────────────────────────────────
+async function sbFetch(table, params) {
+  const url = `${SUPABASE_URL}/rest/v1/${table}?${params}`;
+  const res = await fetch(url, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+  });
+  if (!res.ok) throw new Error(`Supabase error ${res.status} on ${table}`);
+  return res.json();
+}
+
+async function loadData() {
+  try {
+    // Latest stats per competitor (most recent row for each slug)
+    const allStats = await sbFetch('agency_stats',
+      'order=scraped_at.desc&limit=200'
+    );
+
+    // Deduplicate: keep only the latest row per slug
+    const seen = new Set();
+    DATA = [];
+    for (const row of allStats) {
+      if (!seen.has(row.agency_slug)) {
+        seen.add(row.agency_slug);
+        DATA.push(row);
+      }
+    }
+
+    // All history per competitor for trend charts (last 90 days)
+    const historyRows = await sbFetch('agency_stats',
+      'order=scraped_at.asc&limit=2000'
+    );
+    HISTORY = {};
+    for (const row of historyRows) {
+      if (!HISTORY[row.agency_slug]) HISTORY[row.agency_slug] = [];
+      HISTORY[row.agency_slug].push(row);
+    }
+
+    // Latest listing snapshots per competitor
+    const allSnaps = await sbFetch('listing_snapshots',
+      'order=scraped_at.desc&limit=500'
+    );
+    SNAPSHOTS = {};
+    for (const row of allSnaps) {
+      if (!SNAPSHOTS[row.agency_slug]) SNAPSHOTS[row.agency_slug] = {};
+      if (!SNAPSHOTS[row.agency_slug][row.listing_type]) {
+        SNAPSHOTS[row.agency_slug][row.listing_type] = row;
+      }
+    }
+
+    // Delta history for Trends chart — all sale snapshots ordered oldest first
+    const deltaRows = await sbFetch('listing_snapshots',
+      'listing_type=eq.sale&order=scraped_at.asc&limit=1000&select=agency_slug,scraped_at_melb,new_since_yesterday'
+    );
+    DELTA_HIST = {};
+    for (const row of deltaRows) {
+      if (!DELTA_HIST[row.agency_slug]) DELTA_HIST[row.agency_slug] = [];
+      if (row.new_since_yesterday !== null) {
+        DELTA_HIST[row.agency_slug].push({
+          date:  row.scraped_at_melb ? row.scraped_at_melb.split(' ')[0] : '',
+          delta: row.new_since_yesterday
+        });
+      }
+    }
+
+    // Update last run label
+    const latest = allStats[0];
+    if (latest) {
+      document.getElementById('lastRun').textContent =
+        'Last scraped: ' + latest.scraped_at_melb;
+    }
+
+    // Hide spinner, show content
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('overviewGrid').style.display = '';
+    renderOverview();
+
+  } catch(err) {
+    document.getElementById('loadingState').innerHTML =
+      `<div class="error-box">
+        <strong>Could not load data</strong><br><br>
+        ${err.message}<br><br>
+        Check that SUPABASE_URL and SUPABASE_ANON_KEY are set correctly<br>
+        in your Cloudflare Pages environment variables.
+      </div>`;
+  }
+}
+
+// ─── ROUTING ───────────────────────────────────────────────────────────────
+function destroyCharts() {
+  Object.values(charts).forEach(c => { try { c.destroy(); } catch(e){} });
+  charts = {};
+}
+function showPage(page, slug) {
+  destroyCharts();
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  const nt = document.querySelector(`.nav-tab[onclick*="'${page}'"]`);
+  if (nt) nt.classList.add('active');
+  if (page === 'detail') {
+    detailSlug = slug; detailTab = 'sale';
+    document.getElementById('page-detail').classList.add('active');
+    renderDetail();
+  } else {
+    document.getElementById(`page-${page}`).classList.add('active');
+    if (page === 'overview')    renderOverview();
+    if (page === 'trends')      renderTrends();
+    if (page === 'compare')     renderCompare();
+    if (page === 'leaderboard') renderLeaderboard();
+  }
+}
+
+// ─── OVERVIEW ──────────────────────────────────────────────────────────────
+function renderOverview() {
+  const grid = document.getElementById('overviewGrid');
+  grid.innerHTML = '';
+  // Sort: NAP (us) first, then by For Sale descending
+  const sorted = [...DATA].sort((a,b) => {
+    const am = COMP_META[a.agency_slug], bm = COMP_META[b.agency_slug];
+    if (am?.isUs) return -1; if (bm?.isUs) return 1;
+    return (b.for_sale||0) - (a.for_sale||0);
+  });
+  sorted.forEach(row => {
+    const meta  = COMP_META[row.agency_slug] || { name: row.agency_name, color:'#888', isUs:false };
+    const snaps = SNAPSHOTS[row.agency_slug] || {};
+    const saleDelta = snaps.sale?.new_since_yesterday;
+    const saleSnap  = snaps.sale || {};
+    const div = document.createElement('div');
+    div.className = `comp-card${meta.isUs ? ' is-us' : ''} fade`;
+    div.style.cssText = `--card-color:${meta.color}`;
+    div.querySelector !== undefined && (div.style.setProperty('--card-color', meta.color));
+    div.setAttribute('style', `--card-color:${meta.color}`);
+    div.innerHTML = `
+      <style>.comp-card[style="--card-color:${meta.color}"]::before{background:${meta.color}}</style>
+      <div class="card-header">
+        <div>
+          <div class="card-name">${meta.name}</div>
+          <div class="card-slug">${row.agency_slug}</div>
+        </div>
+        ${meta.isUs ? '<span class="us-badge">Our platform</span>' : ''}
+      </div>
+      <div class="card-stats">
+        <div class="cs sale"><div class="cs-val">${(row.for_sale||0).toLocaleString()}</div><div class="cs-lbl">For Sale</div></div>
+        <div class="cs sold"><div class="cs-val">${(row.sold_total||0).toLocaleString()}</div><div class="cs-lbl">Sold</div></div>
+        <div class="cs rent"><div class="cs-val">${(row.for_rent||0).toLocaleString()}</div><div class="cs-lbl">For Rent</div></div>
+        <div class="cs leased"><div class="cs-val">${(row.leased||0).toLocaleString()}</div><div class="cs-lbl">Leased</div></div>
+      </div>
+      <div style="margin-top:10px;">
+        <span class="delta-pill ${saleDelta !== null && saleDelta !== undefined ? 'has-data' : saleSnap?.delta_flag === 'overflow' ? 'overflow' : 'no-data'}">
+          ${saleDelta !== null && saleDelta !== undefined
+            ? `+${saleDelta} new For Sale today`
+            : saleSnap?.delta_flag === 'overflow'
+              ? '⚠ overflow — check manually'
+              : 'delta tracking active — day 2+'}
+        </span>
+      </div>`;
+    div.onclick = () => showPage('detail', row.agency_slug);
+    grid.appendChild(div);
+  });
+}
+
+// ─── TRENDS ────────────────────────────────────────────────────────────────
+function renderTrends() {
+  const el = document.getElementById('page-trends');
+  const dateSet = new Set();
+  for (const slug in DELTA_HIST) {
+    DELTA_HIST[slug].forEach(r => { if (r.date) dateSet.add(r.date); });
+  }
+  const allDates = [...dateSet].sort();
+
+  if (allDates.length === 0) {
+    el.innerHTML = `<div style="padding:60px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:12px;">
+      No delta data yet — needs at least 2 daily scrapes.<br><br>
+      Data will appear here automatically after the 5am run tomorrow.
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="padding:24px 28px;">
+      <div class="section-label">New For Sale listings per day — all competitors</div>
+      <div class="chart-card" style="margin-bottom:20px;margin-top:14px;">
+        <div class="chart-title">Daily new For Sale listings</div>
+        <div class="chart-note">Each line = one platform · ${allDates.length} days of data · NAP (★) is our platform</div>
+        <div id="trends-legend" class="legend" style="margin-bottom:14px;"></div>
+        <div style="position:relative;width:100%;height:380px;">
+          <canvas id="trendsChart" role="img" aria-label="Line chart of daily new For Sale listings per competitor over time">Daily new listing trends.</canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">7-day rolling average</div>
+        <div class="chart-note">Smoothed trend — reduces day-to-day noise</div>
+        <div id="rolling-legend" class="legend" style="margin-bottom:14px;"></div>
+        <div style="position:relative;width:100%;height:300px;">
+          <canvas id="rollingChart" role="img" aria-label="Line chart of 7-day rolling average new listings per competitor">Rolling average trends.</canvas>
+        </div>
+      </div>
+    </div>`;
+
+  const slugOrder = Object.keys(COMP_META);
+
+  const datasets = slugOrder.map(slug => {
+    const meta = COMP_META[slug];
+    const dataMap = {};
+    (DELTA_HIST[slug] || []).forEach(r => { dataMap[r.date] = r.delta; });
+    return {
+      label: meta.shortName,
+      data: allDates.map(d => dataMap[d] !== undefined ? dataMap[d] : null),
+      borderColor: meta.color,
+      borderWidth: meta.isUs ? 3 : 1.5,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      tension: 0.3,
+      fill: false,
+      spanGaps: true,
+    };
+  });
+
+  function rollingAvg(data, w) {
+    return data.map((_, i) => {
+      const slice = data.slice(Math.max(0,i-w+1), i+1).filter(v=>v!==null);
+      if (!slice.length) return null;
+      return parseFloat((slice.reduce((a,b)=>a+b,0)/slice.length).toFixed(1));
+    });
+  }
+
+  const rollingDatasets = slugOrder.map((slug, di) => {
+    const meta = COMP_META[slug];
+    return {
+      label: meta.shortName,
+      data: rollingAvg(datasets[di].data, 7),
+      borderColor: meta.color,
+      borderWidth: meta.isUs ? 3 : 1.5,
+      pointRadius: 0,
+      tension: 0.4,
+      fill: false,
+      spanGaps: true,
+    };
+  });
+
+  // Display dates: from 24/04/2026 onwards shift back 1 day (5am scrape = previous day's data)
+  // Historical data (before 24/04/2026) was hardcoded correctly so leave as-is
+  const SHIFT_FROM = new Date('2026-04-24T00:00:00');
+
+  const displayDates = allDates.map(d => {
+    let dt;
+    const iso = d.split('-');
+    if (iso.length === 3) {
+      dt = new Date(`${d}T00:00:00`);
+    } else {
+      const parts = d.split('/');
+      if (parts.length >= 3) dt = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
+      else if (parts.length >= 2) return `${parts[0]}/${parts[1]}`; // old format, leave as-is
+      else return d;
+    }
+    if (dt >= SHIFT_FROM) {
+      dt.setDate(dt.getDate() - 1);
+    }
+    return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}`;
+  });
+
+  const cOpts = (yLabel) => ({
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode:'index', intersect:false },
+    plugins: {
+      legend: { display:false },
+      tooltip: {
+        backgroundColor:'#1a2030', borderColor:'rgba(255,255,255,0.1)', borderWidth:1,
+        titleColor:'#dde1ef', bodyColor:'#8b93ab', padding:10,
+        usePointStyle: true,
+        itemSort: (a, b) => (b.raw ?? -1) - (a.raw ?? -1),
+        callbacks: {
+          labelColor: function(context) {
+            return {
+              borderColor: context.dataset.borderColor,
+              backgroundColor: context.dataset.borderColor,
+              borderWidth: 2,
+              borderRadius: 2,
+            };
+          }
+        }
+      }
+    },
+    scales: {
+      x: { ticks:{color:'#5a6278',font:{size:10},maxRotation:45,autoSkip:true,maxTicksLimit:14}, grid:{color:'rgba(255,255,255,0.04)'} },
+      y: { title:{display:true,text:yLabel,color:'#5a6278',font:{size:10}}, ticks:{color:'#5a6278',font:{size:10},stepSize:1}, grid:{color:'rgba(255,255,255,0.04)'}, min:0 }
+    }
+  });
+
+  setTimeout(() => {
+    const ctx1 = document.getElementById('trendsChart');
+    const ctx2 = document.getElementById('rollingChart');
+    if (!ctx1 || !ctx2) return;
+    charts.trends  = new Chart(ctx1, {type:'line', data:{labels:displayDates, datasets},        options:cOpts('New listings / day')});
+    charts.rolling = new Chart(ctx2, {type:'line', data:{labels:displayDates, datasets:rollingDatasets}, options:cOpts('7-day avg')});
+    ['trends-legend','rolling-legend'].forEach(id => {
+      const leg = document.getElementById(id); if (!leg) return;
+      leg.innerHTML = slugOrder.map(slug => {
+        const m = COMP_META[slug];
+        return `<span class="legend-item"><span class="legend-dot" style="background:${m.color};${m.isUs?'width:12px;height:12px;':''}opacity:1;"></span>${m.shortName}${m.isUs?' ★':''}</span>`;
+      }).join('');
+    });
+  }, 50);
+}
+
+// ─── COMPARE ───────────────────────────────────────────────────────────────
+function renderCompare() {
+  const el = document.getElementById('page-compare');
+  el.innerHTML = `
+    <div class="compare-section">
+      <div class="section-label">For Sale — active listings</div>
+      <div class="chart-card">
+        <div class="chart-title">Active For Sale listings per platform</div>
+        <div class="chart-note">All platforms · sorted by volume</div>
+        <div id="legend-sale" class="legend"></div>
+        <div class="chart-wrap" style="height:260px;"><canvas id="chartSale" role="img" aria-label="Bar chart of For Sale listings per competitor"></canvas></div>
+      </div>
+    </div>
+    <div class="compare-section">
+      <div class="two-col">
+        <div class="chart-card">
+          <div class="chart-title">Sold (12 months)</div>
+          <div class="chart-note">Completed sale transactions</div>
+          <div id="legend-sold" class="legend"></div>
+          <div class="chart-wrap" style="height:240px;"><canvas id="chartSold" role="img" aria-label="Bar chart of sold properties"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Rental activity</div>
+          <div class="chart-note">For Rent + Leased (12mo) stacked</div>
+          <div id="legend-rent" class="legend"></div>
+          <div class="chart-wrap" style="height:240px;"><canvas id="chartRent" role="img" aria-label="Stacked bar chart of rental activity"></canvas></div>
+        </div>
+      </div>
+    </div>
+    <div class="compare-section">
+      <div class="two-col">
+        <div class="chart-card">
+          <div class="chart-title">For Sale market share</div>
+          <div class="chart-note">% of total listings across all platforms</div>
+          <div id="legend-pie" class="legend"></div>
+          <div class="chart-wrap" style="height:220px;"><canvas id="chartPie" role="img" aria-label="Doughnut chart of market share"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Sale conversion rate</div>
+          <div class="chart-note">Sold ÷ (For Sale + Sold)</div>
+          <div id="legend-conv" class="legend"></div>
+          <div class="chart-wrap" style="height:220px;"><canvas id="chartConv" role="img" aria-label="Bar chart of conversion rates"></canvas></div>
+        </div>
+      </div>
+    </div>`;
+
+  const bySale = [...DATA].sort((a,b) => (b.for_sale||0)-(a.for_sale||0));
+  const bySold = [...DATA].sort((a,b) => (b.sold_total||0)-(a.sold_total||0));
+  const byRent = [...DATA].sort((a,b) => ((b.for_rent||0)+(b.leased||0))-((a.for_rent||0)+(a.leased||0)));
+  const lbl = arr => arr.map(r => COMP_META[r.agency_slug]?.shortName || r.agency_slug);
+  const bg  = arr => arr.map(r => (COMP_META[r.agency_slug]?.color||'#888')+'99');
+  const bd  = arr => arr.map(r => COMP_META[r.agency_slug]?.color||'#888');
+  const gO  = (extra={}) => ({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{color:'#5a6278',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}},
+            y:{ticks:{color:'#5a6278',font:{size:11},callback:v=>v.toLocaleString()},grid:{color:'rgba(255,255,255,0.04)'}}}, ...extra});
+
+  buildLegend('legend-sale', bySale);
+  charts.sale = new Chart(document.getElementById('chartSale'), {type:'bar',data:{labels:lbl(bySale),datasets:[{data:bySale.map(r=>r.for_sale||0),backgroundColor:bg(bySale),borderColor:bd(bySale),borderWidth:1,borderRadius:5}]},options:gO()});
+
+  buildLegend('legend-sold', bySold);
+  charts.sold = new Chart(document.getElementById('chartSold'), {type:'bar',data:{labels:lbl(bySold),datasets:[{data:bySold.map(r=>r.sold_total||0),backgroundColor:bg(bySold),borderColor:bd(bySold),borderWidth:1,borderRadius:5}]},options:gO()});
+
+  buildLegend('legend-rent', byRent, r=>`${COMP_META[r.agency_slug]?.shortName} (rent+leased)`);
+  charts.rent = new Chart(document.getElementById('chartRent'), {type:'bar',data:{labels:lbl(byRent),datasets:[
+    {label:'For Rent',data:byRent.map(r=>r.for_rent||0),backgroundColor:bg(byRent),borderColor:bd(byRent),borderWidth:1},
+    {label:'Leased',  data:byRent.map(r=>r.leased||0),  backgroundColor:byRent.map(r=>(COMP_META[r.agency_slug]?.color||'#888')+'33'),borderColor:byRent.map(r=>(COMP_META[r.agency_slug]?.color||'#888')+'77'),borderWidth:1},
+  ]},options:gO({scales:{x:{stacked:true,ticks:{color:'#5a6278',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}},y:{stacked:true,ticks:{color:'#5a6278',font:{size:11},callback:v=>v.toLocaleString()},grid:{color:'rgba(255,255,255,0.04)'}}}})}); 
+
+  const totalSale = DATA.reduce((s,r)=>s+(r.for_sale||0),0);
+  buildLegend('legend-pie', bySale, r=>`${COMP_META[r.agency_slug]?.shortName} ${(((r.for_sale||0)/totalSale)*100).toFixed(1)}%`);
+  charts.pie = new Chart(document.getElementById('chartPie'), {type:'doughnut',data:{labels:bySale.map(r=>COMP_META[r.agency_slug]?.shortName),datasets:[{data:bySale.map(r=>r.for_sale||0),backgroundColor:bySale.map(r=>(COMP_META[r.agency_slug]?.color||'#888')+'cc'),borderColor:bySale.map(r=>COMP_META[r.agency_slug]?.color||'#888'),borderWidth:1.5}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw.toLocaleString()} (${((ctx.raw/totalSale)*100).toFixed(1)}%)`}}}}});
+
+  const convSorted = [...DATA].map(r=>({...r,conv:((r.sold_total||0)/((r.for_sale||0)+(r.sold_total||0))*100)||0})).sort((a,b)=>b.conv-a.conv);
+  buildLegend('legend-conv', convSorted, r=>`${COMP_META[r.agency_slug]?.shortName} ${r.conv.toFixed(1)}%`);
+  charts.conv = new Chart(document.getElementById('chartConv'), {type:'bar',data:{labels:convSorted.map(r=>COMP_META[r.agency_slug]?.shortName),datasets:[{data:convSorted.map(r=>parseFloat(r.conv.toFixed(1))),backgroundColor:convSorted.map(r=>(COMP_META[r.agency_slug]?.color||'#888')+'99'),borderColor:convSorted.map(r=>COMP_META[r.agency_slug]?.color||'#888'),borderWidth:1,borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#5a6278',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}},y:{max:100,ticks:{color:'#5a6278',font:{size:11},callback:v=>v+'%'},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+}
+
+function buildLegend(id, rows, lFn) {
+  const el = document.getElementById(id); if (!el) return;
+  el.innerHTML = rows.map(r => {
+    const m = COMP_META[r.agency_slug] || {shortName:r.agency_slug, color:'#888'};
+    return `<span class="legend-item"><span class="legend-dot" style="background:${m.color}"></span>${lFn?lFn(r):m.shortName}</span>`;
+  }).join('');
+}
+
+// ─── LEADERBOARD ───────────────────────────────────────────────────────────
+function renderLeaderboard() {
+  const el = document.getElementById('page-leaderboard');
+  const maxS = Math.max(...DATA.map(r=>r.for_sale||0));
+  const maxR = Math.max(...DATA.map(r=>r.for_rent||0));
+  const saleSorted = [...DATA].sort((a,b)=>(b.for_sale||0)-(a.for_sale||0));
+  const rentSorted = [...DATA].sort((a,b)=>(b.for_rent||0)-(a.for_rent||0));
+
+  const saleRows = saleSorted.map((r,i)=>{
+    const m=COMP_META[r.agency_slug]||{};
+    const conv=((r.sold_total||0)/((r.for_sale||0)+(r.sold_total||0))*100)||0;
+    const pct=((r.for_sale||0)/maxS*100).toFixed(0);
+    return `<tr class="rank-${i+1}"><td class="rank-num">${i+1}</td>
+      <td><div class="name-cell"><span class="comp-dot" style="background:${m.color||'#888'}"></span>${m.name||r.agency_slug}${m.isUs?'<span class="us-tag">us</span>':''}</div></td>
+      <td class="num-cell" style="color:var(--sale-c)">${(r.for_sale||0).toLocaleString()}</td>
+      <td><div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${m.color||'#888'}"></div></div></td>
+      <td class="num-cell" style="color:var(--sold-c)">${(r.sold_total||0).toLocaleString()}</td>
+      <td class="num-cell" style="color:var(--rent-c)">${(r.for_rent||0).toLocaleString()}</td>
+      <td class="num-cell" style="color:var(--leased-c)">${(r.leased||0).toLocaleString()}</td>
+      <td class="num-cell">${conv.toFixed(1)}%</td></tr>`;
+  }).join('');
+
+  const rentRows = rentSorted.map((r,i)=>{
+    const m=COMP_META[r.agency_slug]||{};
+    const conv=(r.leased||0)>0?(((r.leased||0)/((r.for_rent||0)+(r.leased||0))*100)).toFixed(1)+'%':'--';
+    const pct=((r.for_rent||0)/maxR*100).toFixed(0);
+    return `<tr class="rank-${i+1}"><td class="rank-num">${i+1}</td>
+      <td><div class="name-cell"><span class="comp-dot" style="background:${m.color||'#888'}"></span>${m.name||r.agency_slug}${m.isUs?'<span class="us-tag">us</span>':''}</div></td>
+      <td class="num-cell" style="color:var(--rent-c)">${(r.for_rent||0).toLocaleString()}</td>
+      <td><div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${m.color||'#888'}"></div></div></td>
+      <td class="num-cell" style="color:var(--leased-c)">${(r.leased||0).toLocaleString()}</td>
+      <td class="num-cell">${conv}</td></tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="compare-section">
+      <div class="section-label">For Sale — ranked</div>
+      <div class="table-wrap"><table class="lb-table"><thead><tr><th>#</th><th>Platform</th><th>For Sale</th><th style="width:180px">Bar</th><th>Sold (12mo)</th><th>For Rent</th><th>Leased</th><th>Conv %</th></tr></thead><tbody>${saleRows}</tbody></table></div>
+    </div>
+    <div class="compare-section" style="margin-top:22px;">
+      <div class="section-label">For Rent — ranked</div>
+      <div class="table-wrap"><table class="lb-table"><thead><tr><th>#</th><th>Platform</th><th>For Rent</th><th style="width:180px">Bar</th><th>Leased (12mo)</th><th>Lease conv %</th></tr></thead><tbody>${rentRows}</tbody></table></div>
+    </div>`;
+}
+
+// ─── DETAIL ────────────────────────────────────────────────────────────────
+function renderDetail() {
+  const row  = DATA.find(r => r.agency_slug === detailSlug);
+  const meta = COMP_META[detailSlug] || { name: row?.agency_name, color:'#888', isUs:false };
+  const snap = (SNAPSHOTS[detailSlug] || {})['sale'] || {};
+  const hist = HISTORY[detailSlug] || [];
+  const el   = document.getElementById('page-detail');
+  const s    = row || {};
+
+  el.innerHTML = `
+    <button class="back-btn" onclick="showPage('overview')">← Back to overview</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+      <span style="width:10px;height:10px;border-radius:50%;background:${meta.color};display:inline-block;"></span>
+      <div class="detail-name">${meta.name}</div>
+      ${meta.isUs ? '<span class="us-badge">Our platform</span>' : ''}
+    </div>
+    <div class="detail-slug">domain.com.au/real-estate-agencies/${detailSlug}/</div>
+    <div class="stat-grid fade">
+      <div class="stat-card sale"><div class="stat-lbl">For Sale</div><div class="stat-val">${(s.for_sale||0).toLocaleString()}</div><div class="stat-sub">active listings</div></div>
+      <div class="stat-card sold"><div class="stat-lbl">Sold (12mo)</div><div class="stat-val">${(s.sold_total||0).toLocaleString()}</div><div class="stat-sub">completed</div></div>
+      <div class="stat-card rent"><div class="stat-lbl">For Rent</div><div class="stat-val">${(s.for_rent||0).toLocaleString()}</div><div class="stat-sub">active</div></div>
+      <div class="stat-card leased"><div class="stat-lbl">Leased (12mo)</div><div class="stat-val">${(s.leased||0).toLocaleString()}</div><div class="stat-sub">completed</div></div>
+    </div>
+    <div class="section-label fade">New For Sale listings — 24h delta</div>
+    <div class="delta-row fade" style="grid-template-columns:1fr;">
+      <div class="delta-box">
+        <div class="delta-type" style="color:var(--sale-c)">New For Sale today</div>
+        ${snap.new_since_yesterday !== null && snap.new_since_yesterday !== undefined
+          ? `<div class="delta-num" style="color:var(--sale-c)">+${snap.new_since_yesterday}</div>`
+          : snap.delta_flag === 'overflow'
+            ? `<div class="delta-na" style="color:#eab308;font-size:12px;">⚠ overflow</div><div class="delta-sub" style="color:#eab308">both anchors not found in 5 pages</div>`
+            : `<div class="delta-na">—</div>`}
+        <div class="delta-sub">total active: ${(snap.total_count||0).toLocaleString()}</div>
+        <div class="delta-anchor">anchor: ${snap.anchor_id||'none'}</div>
+      </div>
+    </div>
+    ${hist.length > 1 ? `
+    <div class="section-label fade">For Sale trend over time</div>
+    <div class="history-chart-card fade">
+      <div class="chart-wrap" style="height:200px;">
+        <canvas id="histChart" role="img" aria-label="Line chart of For Sale listings over time for ${meta.name}">Historical For Sale trend.</canvas>
+      </div>
+    </div>` : ''}`;
+
+  // Trend chart
+  if (hist.length > 1) {
+    setTimeout(() => {
+      const ctx = document.getElementById('histChart');
+      if (!ctx) return;
+      charts.hist = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: hist.map(r => r.scraped_at_melb?.split(' ')[0] || ''),
+          datasets: [{
+            data: hist.map(r => r.for_sale || 0),
+            borderColor: meta.color, backgroundColor: meta.color + '15',
+            borderWidth: 2, pointRadius: 3, tension: 0.3, fill: true,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color:'#5a6278', font:{size:10}, maxRotation:0, autoSkip:true }, grid:{color:'rgba(255,255,255,0.04)'} },
+            y: { ticks: { color:'#5a6278', font:{size:10} }, grid:{color:'rgba(255,255,255,0.04)'} },
+          }
+        }
+      });
+    }, 50);
+  }
+}
+
+// ─── SECTION SWITCHER ──────────────────────────────────────────────────────
+function switchSection(section) {
+  currentSection = section;
+  document.querySelectorAll('.section-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.section-btn.${section}`).classList.add('active');
+  document.getElementById('rsNavTabs').style.display = section === 'rs' ? '' : 'none';
+  document.getElementById('bsNavTabs').style.display = section === 'bs' ? '' : 'none';
+  document.getElementById('topbarSub').textContent = section === 'rs'
+    ? 'Domain Intel · domain.com.au'
+    : 'Business Intel · commercialrealestate.com.au';
+  destroyCharts();
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  if (section === 'rs') {
+    document.getElementById('page-overview').classList.add('active');
+    document.querySelectorAll('#rsNavTabs .nav-tab').forEach((t,i) => t.classList.toggle('active', i===0));
+    renderOverview();
+  } else {
+    document.getElementById('page-bs-overview').classList.add('active');
+    document.querySelectorAll('#bsNavTabs .nav-tab').forEach((t,i) => t.classList.toggle('active', i===0));
+    if (!bsLoaded) loadBsData(); else renderBsOverview();
+  }
+}
+
+function showBsPage(page) {
+  destroyCharts();
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#bsNavTabs .nav-tab').forEach(t => t.classList.remove('active'));
+  const nt = document.querySelector(`#bsNavTabs .nav-tab[onclick*="'${page}'"]`);
+  if (nt) nt.classList.add('active');
+  document.getElementById(`page-${page}`).classList.add('active');
+  if (!bsLoaded) { loadBsData(); return; }
+  if (page === 'bs-overview')    renderBsOverview();
+  if (page === 'bs-trends')      renderBsTrends();
+  if (page === 'bs-compare')     renderBsCompare();
+  if (page === 'bs-leaderboard') renderBsLeaderboard();
+}
+
+// ─── BS DATA LOAD ──────────────────────────────────────────────────────────
+async function loadBsData() {
+  document.getElementById('page-bs-overview').innerHTML = `
+    <div class="loading"><div class="spinner" style="border-top-color:#00d4a0"></div>
+    <div class="load-text">Fetching business intel from Supabase...</div></div>`;
+  try {
+    // Latest stats per slug
+    const allStats = await sbFetch('cre_agency_stats', 'order=scraped_at.desc&limit=100');
+    const seen = new Set(); BS_DATA = [];
+    for (const row of allStats) {
+      if (!seen.has(row.agency_slug)) { seen.add(row.agency_slug); BS_DATA.push(row); }
+    }
+
+    // Latest snapshot per slug
+    const allSnaps = await sbFetch('cre_listing_snapshots', 'order=scraped_at.desc&limit=100');
+    BS_SNAPSHOTS = {};
+    for (const row of allSnaps) {
+      if (!BS_SNAPSHOTS[row.agency_slug]) BS_SNAPSHOTS[row.agency_slug] = row;
+    }
+
+    // Delta history for trends
+    const deltaRows = await sbFetch('cre_listing_snapshots',
+      'order=scraped_at.asc&limit=1000&select=agency_slug,scraped_at_melb,new_since_yesterday');
+    BS_DELTA_HIST = {};
+    for (const row of deltaRows) {
+      if (!BS_DELTA_HIST[row.agency_slug]) BS_DELTA_HIST[row.agency_slug] = [];
+      if (row.new_since_yesterday !== null) {
+        BS_DELTA_HIST[row.agency_slug].push({
+          date: row.scraped_at_melb ? row.scraped_at_melb.split(' ')[0] : '',
+          delta: row.new_since_yesterday
+        });
+      }
+    }
+
+    bsLoaded = true;
+    const activePage = document.querySelector('#bsNavTabs .nav-tab.active');
+    const pg = activePage?.getAttribute('onclick')?.match(/'(bs-[^']+)'/)?.[1] || 'bs-overview';
+    if (pg === 'bs-overview')    renderBsOverview();
+    if (pg === 'bs-trends')      renderBsTrends();
+    if (pg === 'bs-compare')     renderBsCompare();
+    if (pg === 'bs-leaderboard') renderBsLeaderboard();
+  } catch(err) {
+    document.getElementById('page-bs-overview').innerHTML =
+      `<div class="error-box"><strong>Could not load business data</strong><br><br>${err.message}</div>`;
+  }
+}
+
+// ─── BS OVERVIEW ───────────────────────────────────────────────────────────
+function renderBsOverview() {
+  const el = document.getElementById('page-bs-overview');
+  const sorted = [...BS_DATA].sort((a,b) => {
+    const am = CRE_META[a.agency_slug], bm = CRE_META[b.agency_slug];
+    if (am?.isUs) return -1; if (bm?.isUs) return 1;
+    return (b.business_for_sale||0) - (a.business_for_sale||0);
+  });
+  el.innerHTML = `<div class="overview-grid">${sorted.map(row => {
+    const meta = CRE_META[row.agency_slug] || { name: row.agency_name, color:'#888', isUs:false, shortName:'?' };
+    const snap = BS_SNAPSHOTS[row.agency_slug] || {};
+    const delta = snap.new_since_yesterday;
+    const deltaFlag = snap.delta_flag;
+    let pillClass = 'no-data', pillText = 'delta tracking active — day 2+';
+    if (delta !== null && delta !== undefined) { pillClass = 'has-data'; pillText = `+${delta} new today`; }
+    else if (deltaFlag === 'overflow') { pillClass = 'overflow'; pillText = '⚠ overflow — check manually'; }
+    return `<div class="biz-card${meta.isUs?' is-us':''} fade" style="--card-color:${meta.color}">
+      <style>.biz-card[style="--card-color:${meta.color}"]::before{background:${meta.color}}</style>
+      <div class="card-header">
+        <div>
+          <div class="card-name">${meta.name}</div>
+          <div class="biz-platform">commercialrealestate.com.au</div>
+        </div>
+        ${meta.isUs ? '<span class="us-badge">Our platform</span>' : ''}
+      </div>
+      <div style="margin-top:8px;">
+        <div class="biz-count">${(row.business_for_sale||0).toLocaleString()}</div>
+        <div class="biz-count-lbl">Business for Sale</div>
+      </div>
+      <div style="margin-top:10px;">
+        <span class="delta-pill ${pillClass}">${pillText}</span>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ─── BS TRENDS ─────────────────────────────────────────────────────────────
+function renderBsTrends() {
+  const el = document.getElementById('page-bs-trends');
+  const dateSet = new Set();
+  for (const slug in BS_DELTA_HIST) BS_DELTA_HIST[slug].forEach(r => { if (r.date) dateSet.add(r.date); });
+  const allDates = [...dateSet].sort();
+
+  if (allDates.length === 0) {
+    el.innerHTML = `<div style="padding:60px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:12px;">
+      No business delta data yet — needs at least 2 daily scrapes.<br><br>Data will appear here after the 5am run tomorrow.</div>`;
+    return;
+  }
+
+  const slugOrder = Object.keys(CRE_META);
+  const datasets = slugOrder.map(slug => {
+    const meta = CRE_META[slug];
+    const dataMap = {};
+    (BS_DELTA_HIST[slug] || []).forEach(r => { dataMap[r.date] = r.delta; });
+    return {
+      label: meta.shortName,
+      data: allDates.map(d => dataMap[d] !== undefined ? dataMap[d] : null),
+      borderColor: meta.color, borderWidth: meta.isUs ? 3 : 1.5,
+      pointRadius: 3, pointHoverRadius: 5, tension: 0.3, fill: false, spanGaps: true,
+    };
+  });
+
+  function rollingAvg(data, w) {
+    return data.map((_, i) => {
+      const slice = data.slice(Math.max(0,i-w+1), i+1).filter(v=>v!==null);
+      if (!slice.length) return null;
+      return parseFloat((slice.reduce((a,b)=>a+b,0)/slice.length).toFixed(1));
+    });
+  }
+  const rollingDatasets = slugOrder.map((slug, di) => {
+    const meta = CRE_META[slug];
+    return { label: meta.shortName, data: rollingAvg(datasets[di].data, 7),
+      borderColor: meta.color, borderWidth: meta.isUs ? 3 : 1.5,
+      pointRadius: 0, tension: 0.4, fill: false, spanGaps: true };
+  });
+
+  const displayDates = allDates.map(d => {
+    const parts = d.split('/');
+    if (parts.length >= 3) { const dt = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`); return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}`; }
+    return d;
+  });
+
+  const makeLegend = (id) => {
+    const leg = document.getElementById(id); if (!leg) return;
+    leg.innerHTML = slugOrder.map(slug => {
+      const m = CRE_META[slug];
+      return `<span class="legend-item"><span class="legend-dot" style="background:${m.color};${m.isUs?'width:12px;height:12px;':''}"></span>${m.shortName}${m.isUs?' ★':''}</span>`;
+    }).join('');
+  };
+
+  const cOpts = (yLabel) => ({
+    responsive:true, maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a2030',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#dde1ef',bodyColor:'#8b93ab',padding:10,usePointStyle:true,itemSort:(a,b)=>(b.raw??-1)-(a.raw??-1)}},
+    scales:{
+      x:{ticks:{color:'#5a6278',font:{size:10},maxRotation:45,autoSkip:true,maxTicksLimit:14},grid:{color:'rgba(255,255,255,0.04)'}},
+      y:{title:{display:true,text:yLabel,color:'#5a6278',font:{size:10}},ticks:{color:'#5a6278',font:{size:10},stepSize:1},grid:{color:'rgba(255,255,255,0.04)'},min:0}
+    }
+  });
+
+  el.innerHTML = `
+    <div style="padding:24px 28px;">
+      <div class="section-label">New Business for Sale listings per day — all competitors</div>
+      <div class="chart-card" style="margin-bottom:20px;margin-top:14px;">
+        <div class="chart-title">Daily new Business listings</div>
+        <div class="chart-note">Each line = one platform · ${allDates.length} days of data · NAB (★) is our platform</div>
+        <div id="bs-trends-legend" class="legend" style="margin-bottom:14px;"></div>
+        <div style="position:relative;width:100%;height:380px;">
+          <canvas id="bsTrendsChart" role="img" aria-label="Line chart of daily new business listings per competitor"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">7-day rolling average</div>
+        <div class="chart-note">Smoothed trend — reduces day-to-day noise</div>
+        <div id="bs-rolling-legend" class="legend" style="margin-bottom:14px;"></div>
+        <div style="position:relative;width:100%;height:300px;">
+          <canvas id="bsRollingChart" role="img" aria-label="Line chart of 7-day rolling average new business listings"></canvas>
+        </div>
+      </div>
+    </div>`;
+
+  setTimeout(() => {
+    makeLegend('bs-trends-legend'); makeLegend('bs-rolling-legend');
+    const ctx1 = document.getElementById('bsTrendsChart');
+    const ctx2 = document.getElementById('bsRollingChart');
+    if (ctx1) charts.bsTrends  = new Chart(ctx1, {type:'line', data:{labels:displayDates, datasets}, options:cOpts('New listings / day')});
+    if (ctx2) charts.bsRolling = new Chart(ctx2, {type:'line', data:{labels:displayDates, datasets:rollingDatasets}, options:cOpts('7-day avg')});
+  }, 50);
+}
+
+// ─── BS COMPARE ────────────────────────────────────────────────────────────
+function renderBsCompare() {
+  const el = document.getElementById('page-bs-compare');
+  const byBiz = [...BS_DATA].sort((a,b) => (b.business_for_sale||0)-(a.business_for_sale||0));
+  const lbl = arr => arr.map(r => CRE_META[r.agency_slug]?.shortName || r.agency_slug);
+  const bg  = arr => arr.map(r => (CRE_META[r.agency_slug]?.color||'#888')+'99');
+  const bd  = arr => arr.map(r => CRE_META[r.agency_slug]?.color||'#888');
+  const totalBiz = BS_DATA.reduce((s,r)=>s+(r.business_for_sale||0),0);
+
+  el.innerHTML = `
+    <div class="compare-section">
+      <div class="section-label">Business for Sale — active listings</div>
+      <div class="chart-card">
+        <div class="chart-title">Active Business listings per platform</div>
+        <div class="chart-note">All platforms · sorted by volume</div>
+        <div id="bs-legend-biz" class="legend"></div>
+        <div class="chart-wrap" style="height:260px;"><canvas id="bsChartBiz"></canvas></div>
+      </div>
+    </div>
+    <div class="compare-section">
+      <div class="two-col">
+        <div class="chart-card">
+          <div class="chart-title">Market share</div>
+          <div class="chart-note">% of total business listings across all platforms</div>
+          <div id="bs-legend-pie" class="legend"></div>
+          <div class="chart-wrap" style="height:240px;"><canvas id="bsChartPie"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">New listings today</div>
+          <div class="chart-note">Delta tracking — new business listings since yesterday</div>
+          <div id="bs-legend-delta" class="legend"></div>
+          <div class="chart-wrap" style="height:240px;"><canvas id="bsChartDelta"></canvas></div>
+        </div>
+      </div>
+    </div>`;
+
+  const gO = (extra={}) => ({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{color:'#5a6278',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}},
+            y:{ticks:{color:'#5a6278',font:{size:11},callback:v=>v.toLocaleString()},grid:{color:'rgba(255,255,255,0.04)'}}},...extra});
+
+  const buildBsLegend = (id, arr, fn) => {
+    const leg = document.getElementById(id); if (!leg) return;
+    leg.innerHTML = arr.map(r => {
+      const m = CRE_META[r.agency_slug]||{shortName:r.agency_slug,color:'#888'};
+      return `<span class="legend-item"><span class="legend-dot" style="background:${m.color}"></span>${fn?fn(r):m.shortName}</span>`;
+    }).join('');
+  };
+
+  buildBsLegend('bs-legend-biz', byBiz);
+  charts.bsBiz = new Chart(document.getElementById('bsChartBiz'), {type:'bar',
+    data:{labels:lbl(byBiz),datasets:[{data:byBiz.map(r=>r.business_for_sale||0),backgroundColor:bg(byBiz),borderColor:bd(byBiz),borderWidth:1,borderRadius:5}]},
+    options:gO()});
+
+  buildBsLegend('bs-legend-pie', byBiz, r=>`${CRE_META[r.agency_slug]?.shortName} ${(((r.business_for_sale||0)/totalBiz)*100).toFixed(1)}%`);
+  charts.bsPie = new Chart(document.getElementById('bsChartPie'), {type:'doughnut',
+    data:{labels:byBiz.map(r=>CRE_META[r.agency_slug]?.shortName),datasets:[{data:byBiz.map(r=>r.business_for_sale||0),backgroundColor:byBiz.map(r=>(CRE_META[r.agency_slug]?.color||'#888')+'cc'),borderColor:byBiz.map(r=>CRE_META[r.agency_slug]?.color||'#888'),borderWidth:1.5}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw.toLocaleString()} (${((ctx.raw/totalBiz)*100).toFixed(1)}%)`}}}}});
+
+  const deltaData = byBiz.map(r => ({ ...r, delta: BS_SNAPSHOTS[r.agency_slug]?.new_since_yesterday ?? null }));
+  buildBsLegend('bs-legend-delta', deltaData, r=>{
+    const d = BS_SNAPSHOTS[r.agency_slug]?.new_since_yesterday;
+    return `${CRE_META[r.agency_slug]?.shortName} ${d!==null&&d!==undefined?'+'+d:'—'}`;
+  });
+  charts.bsDelta = new Chart(document.getElementById('bsChartDelta'), {type:'bar',
+    data:{labels:deltaData.map(r=>CRE_META[r.agency_slug]?.shortName),datasets:[{data:deltaData.map(r=>r.delta??0),backgroundColor:bg(deltaData),borderColor:bd(deltaData),borderWidth:1,borderRadius:5}]},
+    options:gO()});
+}
+
+// ─── BS LEADERBOARD ────────────────────────────────────────────────────────
+function renderBsLeaderboard() {
+  const el = document.getElementById('page-bs-leaderboard');
+  const sorted = [...BS_DATA].sort((a,b) => (b.business_for_sale||0)-(a.business_for_sale||0));
+  const maxBiz = Math.max(...sorted.map(r=>r.business_for_sale||0));
+
+  const rows = sorted.map((r,i) => {
+    const m = CRE_META[r.agency_slug]||{};
+    const snap = BS_SNAPSHOTS[r.agency_slug]||{};
+    const delta = snap.new_since_yesterday;
+    const pct = ((r.business_for_sale||0)/maxBiz*100).toFixed(0);
+    const deltaDisp = delta!==null&&delta!==undefined ? `<span style="color:#00d4a0;font-family:var(--mono);font-size:11px;">+${delta}</span>` : snap.delta_flag==='overflow' ? `<span style="color:#eab308;font-size:10px;">⚠ overflow</span>` : `<span style="color:var(--muted);font-size:10px;">—</span>`;
+    return `<tr class="rank-${i+1}">
+      <td class="rank-num">${i+1}</td>
+      <td><div class="name-cell"><span class="comp-dot" style="background:${m.color||'#888'}"></span>${m.name||r.agency_slug}${m.isUs?'<span class="us-tag">us</span>':''}</div></td>
+      <td class="num-cell" style="color:#00d4a0">${(r.business_for_sale||0).toLocaleString()}</td>
+      <td><div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${m.color||'#888'}"></div></div></td>
+      <td class="num-cell">${deltaDisp}</td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="compare-section">
+      <div class="section-label">Business for Sale — ranked</div>
+      <div class="table-wrap">
+        <table class="lb-table">
+          <thead><tr><th>#</th><th>Platform</th><th>Business for Sale</th><th style="width:180px">Bar</th><th>New today</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ─── BOOT ──────────────────────────────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>
