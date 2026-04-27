@@ -265,6 +265,7 @@ const CRE_META = {
   'for-sale-by-owner-20095':               { name:'For Sale By Owner',             shortName:'FSBO',  color:'#a855f7', isUs:false },
   'bonza-business-franchise-sales-30533':  { name:'Bonza Business & Franchise',   shortName:'Bonza', color:'#f97316', isUs:false },
   'network-infinity-31749':                { name:'Network Infinity',              shortName:'NI',    color:'#10b981', isUs:false },
+  'coast-to-coast-business-sales-pty-ltd-38212': { name:'Coast to Coast',          shortName:'CtoC',  color:'#f43f5e', isUs:false },
 };
 
 // ─── BUSINESS INTEL STATE ──────────────────────────────────────────────────
@@ -977,7 +978,7 @@ function renderBsTrends() {
   const cOpts = (yLabel) => ({
     responsive:true, maintainAspectRatio:false,
     interaction:{mode:'index',intersect:false},
-    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a2030',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#dde1ef',bodyColor:'#8b93ab',padding:10,usePointStyle:true,itemSort:(a,b)=>(b.raw??-1)-(a.raw??-1)}},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a2030',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#dde1ef',bodyColor:'#8b93ab',padding:10,usePointStyle:true,itemSort:(a,b)=>(b.raw??-1)-(a.raw??-1),callbacks:{labelColor:function(ctx){return{borderColor:ctx.dataset.borderColor,backgroundColor:ctx.dataset.borderColor,borderWidth:2,borderRadius:2};}}}},
     scales:{
       x:{ticks:{color:'#5a6278',font:{size:10},maxRotation:45,autoSkip:true,maxTicksLimit:14},grid:{color:'rgba(255,255,255,0.04)'}},
       y:{title:{display:true,text:yLabel,color:'#5a6278',font:{size:10}},ticks:{color:'#5a6278',font:{size:10},stepSize:1},grid:{color:'rgba(255,255,255,0.04)'},min:0}
